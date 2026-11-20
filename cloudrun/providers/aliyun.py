@@ -29,9 +29,11 @@ DEFAULTS = {
     "instance_type": "ecs.e-c1m1.large",   # 便宜按量型，可改
     "image_id": "",                        # 空则自动找 Alibaba Cloud Linux 3
     "instance_charge_type": "PostPaid",
-    "spot_strategy": "NoSpot",             # 想更省可设 SpotAsPriceGo
+    "spot_strategy": "SpotAsPriceGo",      # 抢占式（默认，省钱，可能被回收）；普通按量设 NoSpot
+    "spot_duration": 1,                    # 抢占保护期(小时)，期内不被回收；0=无保护
+    "spot_interruption_behavior": "Stop",  # 中断时停机保留(契合复用)；Terminate=释放
     "internet_max_bandwidth_out": 5,       # >0 才会分配公网 IP
-    "system_disk_category": "cloud_essd",
+    "system_disk_category": "cloud_essd_entry",
     "system_disk_size": 40,
     "key_pair_name": "",                   # 空则自动创建并保存私钥
     "security_group_id": "",               # 空则自动创建
@@ -275,6 +277,9 @@ def _run_instances(client: AcsClient, s: dict, state: dict, image_id: str) -> st
         "InstanceName": s["instance_name"], "Amount": 1, "UniqueSuffix": True,
         "SpotStrategy": s["spot_strategy"], "Tag.1.Key": "cloudrun", "Tag.1.Value": "true",
     }
+    if s["spot_strategy"] != "NoSpot":
+        params["SpotDuration"] = s["spot_duration"]
+        params["SpotInterruptionBehavior"] = s["spot_interruption_behavior"]
     if state.get("key_pair_name"):
         params["KeyPairName"] = state["key_pair_name"]
     if state.get("zone_id"):

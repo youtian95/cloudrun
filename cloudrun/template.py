@@ -57,11 +57,15 @@ provider:
     access_key_id: ""
     access_key_secret: ""
     region_id: "cn-hangzhou"             # 默认杭州
-    instance_type: "ecs.e-c1m1.large"    # 便宜按量型，可改
+    instance_type: "ecs.e-c1m1.large"    # 2核2G 经济型（测试用）。实际计算选多核：
+    # ecs.c7.xlarge=4核8G / ecs.c7.2xlarge=8核16G / ecs.c7.4xlarge=16核32G（计算型）
+    # ecs.g7.2xlarge=8核32G / ecs.g7.4xlarge=16核64G（通用型，内存更大）
     reuse: true                          # true=复用停机实例(默认)；false=每次新建用完释放
     internet_max_bandwidth_out: 5        # >0 才会分配公网 IP
-    system_disk_category: "cloud_essd"
+    system_disk_category: "cloud_essd_entry"
     system_disk_size: 40
-    spot_strategy: "NoSpot"              # 想更省可设 SpotAsPriceGo（抢占式）
+    spot_strategy: "SpotAsPriceGo"       # 抢占式（默认，省钱，可能被回收）；普通按量设 NoSpot
+    spot_duration: 1                     # 抢占保护期(小时)，期内不被回收；0=无保护
+    spot_interruption_behavior: "Stop"   # 中断时停机保留(契合复用)；Terminate=释放
     # image_id / zone_id / key_pair_name / security_group_id / vswitch_id 留空则全自动创建
 """

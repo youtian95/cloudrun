@@ -77,16 +77,13 @@ sequenceDiagram
 
 ## 打包与发布
 
-```bash
-uv build      # 打包：生成 dist/cloudrun-0.2.0.tar.gz（源码包）+ dist/cloudrun-0.2.0-py3-none-any.whl（wheel）
-uv publish    # 上传到 PyPI（需 token：uv publish --token <token>）
-```
+1. 修改 `pyproject.toml` 的 `[project].version`。
 
-说明：
-- 版本号在 `pyproject.toml` 的 `[project].version`，改版本后重新 `uv build`。
-- 入口命令由 `[project.scripts] cloudrun = "cloudrun.cli:main"` 定义；包发现用 `[tool.setuptools.packages.find] include=["cloudrun*"]`（自动含 `providers` 子包）。
-- 阿里云 SDK 是可选依赖（`[project.optional-dependencies].aliyun`），用户安装时带 `aliyun` extra 即可。
-- 安装方法见顶层 README。
+1. 打包与上传：
+    ```bash
+    uv build      # 打包：生成 dist/cloudrun-0.2.0.tar.gz（源码包）+ dist/cloudrun-0.2.0-py3-none-any.whl（wheel）
+    <!-- uv publish    # 上传到 PyPI（需 token：uv publish --token <token>） -->
+    ```
 
 ## 新增云服务商
 
