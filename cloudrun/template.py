@@ -10,13 +10,36 @@ TEMPLATE = """\
 # cloudrun 配置（由 cloudrun init 生成）。填写 server 与 env.wheels 后即可使用。
 # 本文件所在目录即"工作目录"，push/run 会同步这个目录。config.yaml 本身不会被上传。
 
-# 云服务器连接（自租按量付费 ECS，可随时开关）
+# [二选一]
+# 使用已经存在的云服务器
 server:
   host: ""                    # 云服务器公网 IP
   port: 22
   user: "root"
   key_file: "~/.ssh/id_rsa"   # SSH 私钥（推荐）；不用密钥则填 password
   # password: ""
+
+# [二选一]
+# 自动使用云服务商权限开通新的服务器（每个服务商一段；enabled 为 true 时启用）
+provider:
+  # 使用阿里云，安装时需要 uv sync --extra aliyun
+  aliyun:
+    enabled: true
+    # 凭证推荐用环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET
+    access_key_id: ""
+    access_key_secret: ""
+    region_id: "cn-hangzhou"
+    instance_type: "ecs.e-c1m1.large"   # 2核2G 经济型（测试用）。实际计算选多核：
+    # ecs.c7.xlarge=4核8G / ecs.c7.2xlarge=8核16G / ecs.c7.4xlarge=16核32G（计算型）
+    # ecs.g7.2xlarge=8核32G / ecs.g7.4xlarge=16核64G（通用型，内存更大）
+    reuse: true                          # true=复用停机实例(默认)；false=每次新建用完释放
+    internet_max_bandwidth_out: 5
+    system_disk_category: "cloud_essd_entry"
+    system_disk_size: 40
+    spot_strategy: "SpotAsPriceGo"       # 抢占式（默认，省钱，可能被回收）；普通按量设 NoSpot
+    spot_duration: 1                     # 抢占保护期(小时)，期内不被回收；0=无保护
+    spot_interruption_behavior: "Stop"   # 中断时停机保留(契合复用)；Terminate=释放
+    # image_id / zone_id / key_pair_name / security_group_id / vswitch_id 留空则全自动创建
 
 # 云端根目录与环境
 remote:
@@ -35,8 +58,8 @@ env:
 
 # 增量同步排除项
 sync:
-  exclude: ["__pycache__", "*.pyc", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
-  download_exclude: ["__pycache__", "*.pyc", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
+  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
+  download_exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
 
 # 运行
 run:
@@ -48,24 +71,4 @@ run:
 power:
   on: ""
   off: ""
-
-# 云服务商（每个服务商一段；enabled 启用，name 可显式指定。阿里云需 uv sync --extra aliyun）
-provider:
-  aliyun:
-    enabled: false
-    # 凭证推荐用环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET，也可填这里
-    access_key_id: ""
-    access_key_secret: ""
-    region_id: "cn-hangzhou"             # 默认杭州
-    instance_type: "ecs.e-c1m1.large"    # 2核2G 经济型（测试用）。实际计算选多核：
-    # ecs.c7.xlarge=4核8G / ecs.c7.2xlarge=8核16G / ecs.c7.4xlarge=16核32G（计算型）
-    # ecs.g7.2xlarge=8核32G / ecs.g7.4xlarge=16核64G（通用型，内存更大）
-    reuse: true                          # true=复用停机实例(默认)；false=每次新建用完释放
-    internet_max_bandwidth_out: 5        # >0 才会分配公网 IP
-    system_disk_category: "cloud_essd_entry"
-    system_disk_size: 40
-    spot_strategy: "SpotAsPriceGo"       # 抢占式（默认，省钱，可能被回收）；普通按量设 NoSpot
-    spot_duration: 1                     # 抢占保护期(小时)，期内不被回收；0=无保护
-    spot_interruption_behavior: "Stop"   # 中断时停机保留(契合复用)；Terminate=释放
-    # image_id / zone_id / key_pair_name / security_group_id / vswitch_id 留空则全自动创建
 """

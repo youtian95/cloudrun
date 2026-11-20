@@ -1,7 +1,8 @@
 # cloudrun 配置示例（与 cloudrun init 生成的模板一致）。
 # 推荐直接在工作目录运行 cloudrun init 生成 config.yaml，再填写。
 
-# 云服务器连接（自租按量付费 ECS，可随时开关）
+# [二选一]
+# 使用已经存在的云服务器
 server:
   host: ""                    # 云服务器公网 IP
   port: 22
@@ -9,38 +10,10 @@ server:
   key_file: "~/.ssh/id_rsa"   # SSH 私钥（推荐）；不用密钥则填 password
   # password: ""
 
-# 云端根目录与环境
-remote:
-  workdir: "/root/cloudrun"   # 云端根目录：项目镜像/venv/wheels 都放这下面
-  python: "python3"           # 回退 venv 用的 Python（uv 模式由 uv 管理 Python）
-  index_url: "https://mirrors.aliyun.com/pypi/simple/"   # pip/uv 源
-
-# 环境同步：push 时把本地环境还原到云端
-env:
-  source: auto                # auto=自动检测 / uv=uv sync / requirements=指定文件 / freeze=冻结本地python
-  requirements: ""            # source=requirements 时的 requirements.txt 路径
-  freeze_python: ""           # source=freeze 时要冻结的本地 python/venv 解释器路径
-  wheels: []                  # 自定义 wheel（uv sync 后强制覆盖，如你自己编译的 openseespy）
-  # auto：工作目录有 pyproject.toml+uv.lock 就用 uv sync（还原锁定环境并安装项目）；否则回退依赖检测
-
-# 增量同步排除项
-sync:
-  exclude: ["__pycache__", "*.pyc", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
-  download_exclude: ["__pycache__", "*.pyc", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
-
-# 运行
-run:
-  command: "python run.py"    # 未指定脚本时的默认命令；run 脚本.py 会自动转 python -m 包.模块
-  poll_interval: 5            # 边算边取回：每隔几秒读日志+增量拉新文件
-  detach: false               # true=启动后立即返回（不跟随）；false=实时跟随到算完
-
-# 可选开关机钩子（本机执行的命令，如云 CLI；留空则手动）
-power:
-  on: ""
-  off: ""
-
-# 云服务商（每个服务商一段；enabled 启用，name 可显式指定。阿里云需 uv sync --extra aliyun）
+# [二选一]
+# 自动使用云服务商权限开通新的服务器（每个服务商一段；enabled 为 true 时启用）
 provider:
+  # 使用阿里云，安装时需要 uv sync --extra aliyun
   aliyun:
     enabled: true
     # 凭证推荐用环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET
@@ -58,3 +31,33 @@ provider:
     spot_duration: 1                     # 抢占保护期(小时)，期内不被回收；0=无保护
     spot_interruption_behavior: "Stop"   # 中断时停机保留(契合复用)；Terminate=释放
     # image_id / zone_id / key_pair_name / security_group_id / vswitch_id 留空则全自动创建
+
+# 云端根目录与环境
+remote:
+  workdir: "/root/cloudrun"   # 云端根目录：项目镜像/venv/wheels 都放这下面
+  python: "python3"           # 回退 venv 用的 Python（uv 模式由 uv 管理 Python）
+  index_url: "https://mirrors.aliyun.com/pypi/simple/"   # pip/uv 源
+
+# 环境同步：push 时把本地环境还原到云端
+env:
+  source: auto                # auto=自动检测 / uv=uv sync / requirements=指定文件 / freeze=冻结本地python
+  requirements: ""            # source=requirements 时的 requirements.txt 路径
+  freeze_python: ""           # source=freeze 时要冻结的本地 python/venv 解释器路径
+  wheels: []                  # 自定义 wheel（uv sync 后强制覆盖，如你自己编译的 openseespy）
+  # auto：工作目录有 pyproject.toml+uv.lock 就用 uv sync（还原锁定环境并安装项目）；否则回退依赖检测
+
+# 增量同步排除项
+sync:
+  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
+  download_exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
+
+# 运行
+run:
+  command: "python run.py"    # 未指定脚本时的默认命令；run 脚本.py 会自动转 python -m 包.模块
+  poll_interval: 5            # 边算边取回：每隔几秒读日志+增量拉新文件
+  detach: false               # true=启动后立即返回（不跟随）；false=实时跟随到算完
+
+# 可选开关机钩子（本机执行的命令，如云 CLI；留空则手动）
+power:
+  on: ""
+  off: ""

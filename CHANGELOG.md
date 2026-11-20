@@ -2,6 +2,13 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 格式，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] - 2026-11-20
+
+- 忽略 egg-info
+- 修改模版
+- 随时读取日志回本地
+- 修复bug，现在测试可以运行了
+
 ## [0.2.1] - 2026-11-20
 
 - 阿里云改成抢占式

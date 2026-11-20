@@ -13,7 +13,7 @@ import os
 import yaml
 
 # 下载排除项默认值：只排垃圾与内部标记，绝不排结果目录（结果要原位写回）
-DEFAULT_DOWNLOAD_EXCLUDE = ["__pycache__", "*.pyc", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]
+DEFAULT_DOWNLOAD_EXCLUDE = ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]
 
 
 class Config:
@@ -61,7 +61,7 @@ class Config:
         self.env_freeze_python = os.path.expanduser(env.get("freeze_python", "") or "")
         self.env_wheels = [os.path.expanduser(w) for w in env.get("wheels", [])]
 
-        self.sync_exclude = sync.get("exclude", ["__pycache__", "*.pyc", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"])
+        self.sync_exclude = sync.get("exclude", ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"])
         self.sync_download_exclude = sync.get("download_exclude", DEFAULT_DOWNLOAD_EXCLUDE)
         self.run_command = run.get("command", "python run.py")
         self.run_poll_interval = float(run.get("poll_interval", 5))

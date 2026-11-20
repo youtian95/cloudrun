@@ -34,6 +34,11 @@ def _snapshot_path(cfg: Config, workdir: str) -> str:
     return os.path.join(workdir, ".cloudrun", "snapshot.json")
 
 
+def _local_log_path(workdir: str) -> str:
+    """本地运行日志路径（workdir/.cloudrun/run.log）。参数 workdir: 工作目录。返回路径。"""
+    return os.path.join(workdir, ".cloudrun", "run.log")
+
+
 def _hook(cmd: str) -> None:
     """在本机执行开机/关机钩子命令，命令为空则跳过。"""
     if cmd:
@@ -126,7 +131,8 @@ def _launch(remote: Remote, cfg: Config, remote_project: str, cmd: str, mode: st
         venv = cfg.remote_workdir + "/venv"
         body = f"cd {remote_project}\nsource {venv}/bin/activate\nexec {cmd}\n"
     remote.write_text(script, "#!/bin/bash\n" + body)
-    remote.run(f"nohup bash {script} > {log} 2>&1 & echo $! > {pid}")
+    # 用非 PTY 通道启动并断开 stdin：避免 PTY 关闭时 SIGHUP 杀掉后台进程
+    remote.output(f"nohup bash {script} > {log} 2>&1 < /dev/null & echo $! > {pid}")
 
 
 def _follow(remote: Remote, cfg: Config, remote_project: str, snapshot: dict, workdir: str) -> None:
@@ -141,20 +147,27 @@ def _follow(remote: Remote, cfg: Config, remote_project: str, snapshot: dict, wo
     """
     log = remote_project + "/.cloudrun_run.log"
     pid = remote_project + "/.cloudrun_run.pid"
+    local_log = _local_log_path(workdir)
+    os.makedirs(os.path.dirname(local_log), exist_ok=True)
     offset = 0
-    while True:
-        text, offset = remote.read_log(log, offset)
-        if text:
-            print(text, end="", flush=True)
-        down, _ = remote.download_tree(remote_project, workdir, snapshot=snapshot, exclude=cfg.sync_download_exclude)
-        if down:
-            print(f"[取回 {down} 个新文件]", flush=True)
-        if not remote.alive(pid):
+    with open(local_log, "w", encoding="utf-8") as lf:
+        while True:
             text, offset = remote.read_log(log, offset)
             if text:
                 print(text, end="", flush=True)
-            return
-        time.sleep(cfg.run_poll_interval)
+                lf.write(text)
+                lf.flush()
+            down, _ = remote.download_tree(remote_project, workdir, snapshot=snapshot, exclude=cfg.sync_download_exclude)
+            if down:
+                print(f"[取回 {down} 个新文件]", flush=True)
+            if not remote.alive(pid):
+                text, offset = remote.read_log(log, offset)
+                if text:
+                    print(text, end="", flush=True)
+                    lf.write(text)
+                    lf.flush()
+                return
+            time.sleep(cfg.run_poll_interval)
 
 
 def init(workdir: str, force: bool = False) -> None:
@@ -172,7 +185,11 @@ def init(workdir: str, force: bool = False) -> None:
     with open(path, "w", encoding="utf-8") as f:
         f.write(TEMPLATE)
     print("已生成", path)
-    print("请填写 server 连接信息与 env.wheels，然后 cloudrun run 脚本.py")
+    print("请配置 config.yaml（二选一）：")
+    print("  手动服务器：填 server（host/user/密钥）")
+    print("  阿里云全自动：填 provider.aliyun.access_key_id/secret（或设环境变量），server.host 留空")
+    print("  如有自定义编译的包再填 env.wheels")
+    print("配置好后运行：cloudrun run 脚本.py")
 
 
 def push(cfg: Config, workdir: str) -> None:
@@ -244,6 +261,12 @@ def fetch(cfg: Config, workdir: str) -> None:
     try:
         down, skip = remote.download_tree(remote_project, workdir, snapshot=snapshot, exclude=cfg.sync_download_exclude)
         print(f"下载 {down} 个文件（跳过 {skip}）-> 工作目录")
+        # 同步运行日志到本地 .cloudrun/run.log
+        remote_log = remote_project + "/.cloudrun_run.log"
+        if remote.exists(remote_log):
+            local_log = _local_log_path(workdir)
+            os.makedirs(os.path.dirname(local_log), exist_ok=True)
+            remote.sftp.get(remote_log, local_log)
     finally:
         remote.close()
 
