@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cloudrun"
+version = "0.2.0"
+description = "把本地 Python 计算提交到自租云服务器执行：增量同步文件与环境，边算边取回结果"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["paramiko>=3.0", "pyyaml>=6.0"]
+
+[project.scripts]
+cloudrun = "cloudrun.cli:main"
+
+[project.optional-dependencies]
+# 阿里云自动开机/公网/停机：uv sync --extra aliyun
+aliyun = ["aliyun-python-sdk-core>=2.13"]
+
+[tool.setuptools.packages.find]
+include = ["cloudrun*"]
+
+[tool.uv]
+# 缓存与项目跨盘，用复制避免 hardlink 警告
+link-mode = "copy"
+
+# uv 默认用阿里云镜像加速（国内网络）
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
