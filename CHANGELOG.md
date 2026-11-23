@@ -2,6 +2,15 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 格式，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+- [ ] 路径有空格的问题
+- [ ] 增加默认系统开发环境的yaml命令
+
+## [0.3.1] - 2026-11-23
+
+- [x] 修改模版
+
 ## [0.3.0] - 2026-11-20
 
 - 忽略 egg-info
