@@ -54,6 +54,10 @@ remote:
   workdir: "/root/cloudrun"   # 云端根目录：项目镜像/venv/wheels 都放这下面
   python: "python3"           # 云端建 venv 的 Python（需含 venv 模块，版本尽量与本地一致）
   index_url: "https://mirrors.aliyun.com/pypi/simple/"   # pip 源
+  setup_commands: []          # 云端首次初始化命令，全部成功后同一工作根目录不再执行
+    # Ubuntu 示例（使用 root 登录，其他用户按需加 sudo）：
+    - apt-get update
+    - apt-get install -y build-essential git curl python3-venv
 
 # 环境同步：push 时把本地环境还原到云端
 env:

@@ -19,7 +19,7 @@ import subprocess
 import time
 
 from .config import Config
-from .env import ensure_env, _UV_PATH, detect_mode
+from .env import _UV_PATH, detect_mode, ensure_env, ensure_system_setup
 from .providers import get_provider
 from .ssh import Remote
 from .template import TEMPLATE
@@ -54,11 +54,23 @@ def _apply_provider(cfg: Config, workdir: str) -> None:
 
 
 def up(cfg: Config, workdir: str) -> None:
-    """云服务商：自动供应并开机，未配置 provider 时报错。"""
+    """供应并开机，按需初始化云端系统环境。
+
+    参数：
+        cfg: 配置（提供云服务商和系统初始化命令）。
+        workdir: 本地工作目录，用于读取和保存实例状态。
+    """
     provider = get_provider(cfg)
     if provider is None:
         raise ValueError("未配置云服务商（请在 config 启用，如 aliyun.enabled: true）")
     provider.up(cfg, workdir)
+    # 只有配置初始化命令时，单独开机才需要建立 SSH 会话。
+    if cfg.remote_setup_commands:
+        remote = Remote(cfg)
+        try:
+            ensure_system_setup(remote, cfg)
+        finally:
+            remote.close()
 
 
 def down(cfg: Config, workdir: str) -> None:
@@ -93,7 +105,7 @@ def build_command(cfg: Config, args: list | None) -> str:
 
 
 def _push(remote: Remote, cfg: Config, workdir: str) -> tuple[dict, str]:
-    """增量上传项目、同步环境，并记录文件状态快照。
+    """按需初始化云端系统，增量上传项目、同步环境并记录文件状态快照。
 
     参数：
         remote: SSH 会话。
@@ -103,6 +115,7 @@ def _push(remote: Remote, cfg: Config, workdir: str) -> tuple[dict, str]:
     返回：
         (snapshot, mode)：snapshot 为 {相对路径: (大小, mtime)}，mode 为 uv 或 venv。
     """
+    ensure_system_setup(remote, cfg)
     mode = detect_mode(cfg, workdir)
     remote_project = _remote_project(cfg, workdir)
     up, skip, snapshot = remote.upload_tree(workdir, remote_project, cfg.sync_exclude)

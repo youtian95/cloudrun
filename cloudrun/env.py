@@ -3,9 +3,10 @@
 功能：
     检测——detect_mode 判断走 uv 还是 venv；resolve_requirements 解析本地依赖成 requirements
           （auto 依次检测 .venv/requirements.txt/pyproject，freeze 冻结指定解释器），剔除 wheel 已提供的包。
+    初始化——ensure_system_setup 在云端执行一次配置的系统开发环境命令。
     安装——ensure_env 上传自定义 wheel；uv 模式远程装 uv 并 uv sync（建 .venv、装锁定依赖、安装项目），
           再强制覆盖自定义 wheel；venv 回退模式建 venv 装 wheel+requirements。按哈希缓存复用。
-使用流程：detect_mode(cfg, workdir) 定模式 -> ensure_env(remote, cfg, workdir, mode, remote_project)（项目文件须已上传）。
+使用流程：连接后执行 ensure_system_setup；项目上传后执行 detect_mode 和 ensure_env 同步 Python 环境。
 输入：Config、工作目录、Remote、模式、远程项目目录。
 输出：环境模式字符串 / requirements 文本 / 云端环境就绪。
 """
@@ -144,6 +145,27 @@ def resolve_requirements(cfg: Config, workdir: str) -> str:
 
 
 # ---------- 远程安装 ----------
+def ensure_system_setup(remote: Remote, cfg: Config) -> None:
+    """在云端工作根目录执行一次系统初始化，失败后允许重试。
+
+    参数：
+        remote: 已连接的 SSH 会话。
+        cfg: 配置（提供工作根目录和 Bash 初始化脚本）。
+    """
+    if not cfg.remote_setup_commands:
+        return
+
+    # 在同一把远端文件锁下检查和写入标记，避免并发启动时重复安装。
+    marker = shlex.quote(cfg.remote_workdir + "/.cloudrun_system_ready")
+    lock = shlex.quote(cfg.remote_workdir + "/.cloudrun_system_setup.lock")
+    workdir = shlex.quote(cfg.remote_workdir or "/")
+    commands = shlex.quote(cfg.remote_setup_commands)
+    setup = f'''if [[ -f {marker} ]]; then exit 0; fi
+echo "初始化云端系统开发环境……"
+(cd -- {workdir} && bash -e -o pipefail -c {commands}) && touch -- {marker}'''
+    remote.run(f"mkdir -p -- {workdir} && flock --close -- {lock} bash -c {shlex.quote(setup)}", check=True)
+
+
 def _upload_wheels(remote: Remote, cfg: Config) -> tuple[str, list]:
     """把自定义 wheel 上传到云端根目录的 wheels/。参数 remote: 会话；cfg: 配置。返回 (wheels 目录, 文件名列表)。"""
     wheels_dir = cfg.remote_workdir + "/wheels"

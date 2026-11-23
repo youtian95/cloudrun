@@ -24,6 +24,7 @@ class Config:
         remote_workdir: 云端根目录（项目镜像/venv/wheels 放这下面）。
         remote_python: 云端回退 venv 用的 Python 命令。
         remote_index: 云端 pip/uv 源。
+        remote_setup_commands: 首次连接时执行的云端 Bash 初始化脚本。
         env_source: 环境来源 auto/uv/requirements/freeze。
         env_requirements: requirements.txt 路径（source=requirements）。
         env_freeze_python: 要冻结的本地解释器路径（source=freeze）。
@@ -37,7 +38,7 @@ class Config:
     """
 
     def __init__(self, data: dict):
-        """从已解析的 YAML 字典初始化各段，缺失项套用默认值。"""
+        """从 YAML 初始化配置。参数 data: 已解析的 YAML 字典，缺失项套用默认值。"""
         # 逐段取值并给默认值，少写某段也不报错
         server = data.get("server", {})
         remote = data.get("remote", {})
@@ -55,6 +56,15 @@ class Config:
         self.remote_workdir = remote.get("workdir", "/root/cloudrun").rstrip("/")
         self.remote_python = remote.get("python", "python3")
         self.remote_index = remote.get("index_url", "https://mirrors.aliyun.com/pypi/simple/")
+        # 接受 Bash 脚本块或命令列表，列表中的命令在同一个 Bash 进程里执行。
+        setup = remote.get("setup_commands")
+        if setup is None:
+            setup = ""
+        if isinstance(setup, list) and all(isinstance(command, str) for command in setup):
+            setup = "\n".join(setup)
+        if not isinstance(setup, str):
+            raise ValueError("remote.setup_commands 必须是 Bash 脚本字符串或字符串列表")
+        self.remote_setup_commands = setup.strip()
 
         self.env_source = env.get("source", "auto")
         self.env_requirements = os.path.expanduser(env.get("requirements", "") or "")
