@@ -28,14 +28,21 @@ provider:
     # 凭证推荐用环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET
     access_key_id: ""
     access_key_secret: ""
+
+    # [模版1 - 24核48G模版]
+    # region_id: "cn-shanghai"
+    # instance_type: "ecs.hfc7.6xlarge"   
+    # [模版2 - 8核16G模版]
+    # region_id: "cn-hangzhou"
+    # instance_type: "ecs.c9i.2xlarge"   
+    # [模版3 - 2核2G模版]
     region_id: "cn-hangzhou"
+    instance_type: "ecs.e-c1m1.large"   
+
     image_id: "ubuntu_24_04_x64_20G_alibase_20260720.vhd"   # Ubuntu 24.04 64位 20G
-    instance_type: "ecs.c9i.2xlarge"   # 2核2G 经济型（测试用）。实际计算选多核：
-    # ecs.c7.xlarge=4核8G / ecs.c7.2xlarge=8核16G / ecs.c7.4xlarge=16核32G（计算型）
-    # ecs.g7.2xlarge=8核32G / ecs.g7.4xlarge=16核64G（通用型，内存更大）
     reuse: true                          # true=复用停机实例(默认)；false=每次新建用完释放
     internet_max_bandwidth_out: 5
-    system_disk_category: "cloud_essd_entry"  # cloud_essd / cloud_essd_entry
+    system_disk_category: "cloud_essd"  # cloud_essd / cloud_essd_entry
     system_disk_size: 40
     spot_strategy: "SpotAsPriceGo"       # 抢占式（默认，省钱，可能被回收）；普通按量设 NoSpot
     spot_duration: 1                     # 抢占保护期(小时)，期内不被回收；0=无保护

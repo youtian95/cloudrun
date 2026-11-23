@@ -12,6 +12,7 @@ from __future__ import annotations
 import fnmatch
 import os
 import posixpath
+import shlex
 import stat
 
 import paramiko
@@ -237,8 +238,9 @@ class Remote:
         return data.decode("utf-8", "replace"), offset + len(data)
 
     def alive(self, pidfile: str) -> bool:
-        """根据 pid 文件判断后台作业进程是否仍在运行。"""
-        out = self.output(f"if [ -f {pidfile} ] && kill -0 $(cat {pidfile}) 2>/dev/null; then echo 1; else echo 0; fi")
+        """根据 PID 文件判断作业是否仍在运行。参数 pidfile: 云端 PID 文件路径。"""
+        path = shlex.quote(pidfile)
+        out = self.output(f'if [ -f {path} ] && kill -0 "$(cat -- {path})" 2>/dev/null; then echo 1; else echo 0; fi')
         return out.strip() == "1"
 
     def close(self) -> None:

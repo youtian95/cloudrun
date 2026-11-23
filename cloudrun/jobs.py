@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import time
 
@@ -86,7 +87,8 @@ def build_command(cfg: Config, args: list | None) -> str:
     """
     if args:
         a = args[1:] if args[0] == "--" else args   # 兼容 cloudrun run -- -m 包.模块
-        return "python " + " ".join(a)
+        # 按 Bash 规则保留每个 Python 参数的边界。
+        return shlex.join(["python", *a])
     return cfg.run_command
 
 
@@ -125,14 +127,16 @@ def _launch(remote: Remote, cfg: Config, remote_project: str, cmd: str, mode: st
     script = remote_project + "/.cloudrun_run.sh"
     log = remote_project + "/.cloudrun_run.log"
     pid = remote_project + "/.cloudrun_run.pid"
+    # 仅在拼接 Bash 命令时引用路径，SFTP 仍使用原始路径。
+    enter_project = f"cd -- {shlex.quote(remote_project)} || exit"
     if mode == "uv":
-        body = f"cd {remote_project}\n{_UV_PATH}\nexec uv run {cmd}\n"
+        body = f"{enter_project}\n{_UV_PATH}\nexec uv run {cmd}\n"
     else:
-        venv = cfg.remote_workdir + "/venv"
-        body = f"cd {remote_project}\nsource {venv}/bin/activate\nexec {cmd}\n"
+        activate = shlex.quote(cfg.remote_workdir + "/venv/bin/activate")
+        body = f"{enter_project}\nsource {activate} || exit\nexec {cmd}\n"
     remote.write_text(script, "#!/bin/bash\n" + body)
     # 用非 PTY 通道启动并断开 stdin：避免 PTY 关闭时 SIGHUP 杀掉后台进程
-    remote.output(f"nohup bash {script} > {log} 2>&1 < /dev/null & echo $! > {pid}")
+    remote.output(f"nohup bash {shlex.quote(script)} > {shlex.quote(log)} 2>&1 < /dev/null & echo $! > {shlex.quote(pid)}")
 
 
 def _follow(remote: Remote, cfg: Config, remote_project: str, snapshot: dict, workdir: str) -> None:
@@ -284,7 +288,7 @@ def logs(cfg: Config, workdir: str, tail: int = 50, follow: bool = False) -> Non
     _apply_provider(cfg, workdir)
     remote = Remote(cfg)
     try:
-        print(remote.output(f"tail -n {tail} {log}"))
+        print(remote.output(f"tail -n {tail} -- {shlex.quote(log)}"))
         if follow:
             try:
                 offset = remote.sftp.stat(log).st_size

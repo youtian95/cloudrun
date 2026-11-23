@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shlex
 import subprocess
 
 from .config import Config
@@ -181,6 +182,8 @@ def ensure_env(remote: Remote, cfg: Config, workdir: str, mode: str, remote_proj
     """
     wheels_dir, wheel_names = _upload_wheels(remote, cfg)
     marker = cfg.remote_workdir + "/.cloudrun_env_hash"
+    # 引用传给 Bash 的路径和值，保留原始路径供 SFTP 使用。
+    index = shlex.quote(cfg.remote_index)
 
     if mode == "uv":
         ensure_uv(remote)
@@ -192,27 +195,31 @@ def ensure_env(remote: Remote, cfg: Config, workdir: str, mode: str, remote_proj
             print("云端环境未变化，复用 uv 环境")
             return
         print("远程 uv sync 还原锁定环境并安装项目……")
-        remote.run(f"cd {remote_project} && {_UV_PATH} && export UV_DEFAULT_INDEX={cfg.remote_index} && uv sync", check=True)
+        enter_project = f"cd -- {shlex.quote(remote_project)}"
+        remote.run(f"{enter_project} && {_UV_PATH} && export UV_DEFAULT_INDEX={index} && uv sync", check=True)
         if wheel_names:
-            remote.run(f"cd {remote_project} && {_UV_PATH} && uv pip install --python .venv/bin/python --force-reinstall --no-deps {wheels_dir}/*.whl", check=True)
+            # 只引用目录，让 Bash 继续展开 wheel 通配符。
+            remote.run(f"{enter_project} && {_UV_PATH} && uv pip install --python .venv/bin/python --force-reinstall --no-deps {shlex.quote(wheels_dir)}/*.whl", check=True)
         remote.write_text(marker, fingerprint)
         print("云端环境就绪（uv）")
     else:
         req = resolve_requirements(cfg, workdir)
+        requirements = cfg.remote_workdir + "/requirements.txt"
         venv = cfg.remote_workdir + "/venv"
-        pip = venv + "/bin/pip"
+        pip = shlex.quote(venv + "/bin/pip")
         h = _wheels_hash(cfg)
         h.update(req.encode("utf-8"))
         fingerprint = h.hexdigest()
-        remote.write_text(cfg.remote_workdir + "/requirements.txt", req)
+        remote.write_text(requirements, req)
         if remote.exists(marker) and remote.exists(venv + "/bin/python") and remote.read_text(marker).strip() == fingerprint:
             print("云端环境未变化，复用 venv")
             return
         print("初始化云端 venv 并安装依赖……")
-        remote.run(f"{cfg.remote_python} -m venv {venv}", check=True)
+        remote.run(f"{cfg.remote_python} -m venv {shlex.quote(venv)}", check=True)
         for name in wheel_names:
-            remote.run(f"{pip} install -i {cfg.remote_index} {wheels_dir}/{name}", check=True)
+            wheel = shlex.quote(wheels_dir + "/" + name)
+            remote.run(f"{pip} install -i {index} {wheel}", check=True)
         if req.strip():
-            remote.run(f"{pip} install -i {cfg.remote_index} -r {cfg.remote_workdir}/requirements.txt", check=True)
+            remote.run(f"{pip} install -i {index} -r {shlex.quote(requirements)}", check=True)
         remote.write_text(marker, fingerprint)
         print("云端环境就绪（venv）")
