@@ -54,7 +54,7 @@ remote:
   workdir: "/root/cloudrun"   # 云端根目录：项目镜像/venv/wheels 都放这下面
   python: "python3"           # 云端建 venv 的 Python（需含 venv 模块，版本尽量与本地一致）
   index_url: "https://mirrors.aliyun.com/pypi/simple/"   # pip 源
-  setup_commands: []          # 云端首次初始化命令，全部成功后同一工作根目录不再执行
+  setup_commands:           # 云端首次初始化命令，全部成功后同一工作根目录不再执行
     # Ubuntu 示例（使用 root 登录，其他用户按需加 sudo）：
     - apt-get update
     - apt-get install -y build-essential git curl python3-venv
@@ -70,13 +70,13 @@ env:
 
 # 增量同步排除项
 sync:
-  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
+  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
   download_exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
 
 # 运行
 run:
   command: "python run.py"    # 未指定脚本时的默认命令；run 脚本.py 会自动转 python -m 包.模块
-  poll_interval: 5            # 边算边取回：每隔几秒读日志+增量拉新文件
+  poll_interval: 5            # 运行日志轮询间隔（秒），结果在作业结束后下载
   detach: false               # true=启动后立即返回（不跟随）；false=实时跟随到算完
 
 # 可选开关机钩子（本机执行的命令，如云 CLI；留空则手动）

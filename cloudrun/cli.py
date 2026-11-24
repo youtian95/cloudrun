@@ -40,7 +40,7 @@ def main() -> None:
     # push：只同步文件与环境
     sub.add_parser("push", help="同步本地文件与环境到云端（不运行）")
 
-    # run：自动 push + 运行 + 边算边取回
+    # run：自动同步并启动作业，跟随日志，结束后下载结果
     p_run = sub.add_parser("run", help="自动 push 并运行，参数原样转发给 python")
     p_run.add_argument("args", nargs=argparse.REMAINDER, help="传给 python 的参数，与本地一致（如 -m 包.模块 或 脚本.py）")
 

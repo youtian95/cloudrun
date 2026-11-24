@@ -31,7 +31,7 @@ class Config:
         env_wheels: 自定义 wheel 路径列表（单独安装/覆盖）。
         sync_exclude: 不上传的模式列表。
         run_command: 未指定脚本时默认执行的命令。
-        run_poll_interval: 边算边取回的轮询秒数。
+        run_poll_interval: 运行日志的轮询间隔（秒）。
         run_detach: 是否启动后即返回。
         power_on/power_off: 本机开关机钩子命令。
         provider: 云服务商配置段（按服务商名分组，如 provider.aliyun；name 可显式指定）。

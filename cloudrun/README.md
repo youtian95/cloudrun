@@ -9,7 +9,7 @@
 | `cli.py` | 命令行解析与分发；始终用当前目录 `config.yaml` | `main()` |
 | `config.py` | 读取 YAML，展平成 `Config`（含默认值） | `Config.load()` |
 | `template.py` | `init` 写出的 `config.yaml` 模板 | `TEMPLATE` |
-| `jobs.py` | **编排核心**：参数转发、push、run、跟随取回、原位写回 | `run()`/`build_command()`/`_push`/`_launch`/`_follow` |
+| `jobs.py` | **编排核心**：参数转发、push、run、日志跟随、结果写回 | `run()`/`build_command()`/`_push`/`_launch`/`_follow` |
 | `ssh.py` | 远程会话：SSH 执行、SFTP、**增量上传/下载**、读日志、查存活 | `Remote`（`upload_tree`/`download_tree`/`read_log`/`alive`…） |
 | `env.py` | 环境：本地检测模式/依赖 + 远程安装（**uv sync** 或 venv）+ 自定义 wheel 覆盖 | `detect_mode()`/`resolve_requirements()`/`ensure_env()` |
 | `providers/` | 云服务商插件包：统一接口，`get_provider()` 按配置懒加载选用 | `get_provider()`；`aliyun.up/down/destroy/apply_state` |
@@ -72,7 +72,7 @@ sequenceDiagram
 - **命令转发**（`build_command`）：`cloudrun run` 后的参数原样交给 `python`（本地怎么跑远程就怎么跑）；免 `--` 透传由 cli 的 `_prepare_run_argv` 预处理。
 - **uv 环境还原**（`env.py`）：远程装 uv，`uv sync` 按 `uv.lock` 装锁定依赖并安装项目（`-m` 直接可用），再 `uv pip install --force-reinstall` 覆盖自定义 wheel；`uv.lock`+wheel 哈希缓存，未变不重装。非 uv 项目回退 venv+requirements。
 - **增量同步 + 原位写回（B）**：上传按大小+mtime 跳过；下载用 `snapshot` 跳过未变输入，新/变动文件**写回工作目录原相对路径**；`sync.download_exclude` 排垃圾与内部标记（`.cloudrun_run.*`、`.venv`），**绝不排结果目录**。
-- **边算边取回**（`_follow`）：nohup 启动后轮询"读日志 + 增量下载 + 查存活"，进程结束做最终取回；Ctrl-C 断开云端仍继续。
+- **日志跟随**（`_follow`）：nohup 启动后轮询日志并检查进程存活，进程退出后 `run()` 增量取回文件。Ctrl-C 断开后云端作业继续运行。
 - **状态文件**（`providers/aliyun.py`）：实例/网络/密钥 ID 与公网 IP 存 `.cloudrun/aliyun_state.json`，私钥存 `.cloudrun/cloudrun_key.pem`。
 
 ## 打包与发布

@@ -1,9 +1,9 @@
-"""作业编排：init/push/run/fetch/logs/status/up/down/destroy，以及"边算边取回"的跟随循环。
+"""作业编排：init/push/run/fetch/logs/status/up/down/destroy，以及实时日志跟随。
 
 功能：
     init  在工作目录生成 config.yaml 模板；
     push  增量上传项目 + 同步环境（uv sync 或 venv）；
-    run   指定脚本自动转运行命令 -> push -> 云端后台启动 -> 跟随（实时日志 + 增量取回）到算完；
+    run   构造运行命令 -> push -> 云端后台启动 -> 实时跟随日志 -> 作业结束后增量下载结果；
     fetch 增量拉回新/变动文件，原位写回工作目录；logs 看日志；status 查存活。
 使用流程：cloudrun init -> 填 config.yaml -> cloudrun run 脚本.py。
 输入：Config、工作目录（config.yaml 所在目录）。
@@ -152,15 +152,14 @@ def _launch(remote: Remote, cfg: Config, remote_project: str, cmd: str, mode: st
     remote.output(f"nohup bash {shlex.quote(script)} > {shlex.quote(log)} 2>&1 < /dev/null & echo $! > {shlex.quote(pid)}")
 
 
-def _follow(remote: Remote, cfg: Config, remote_project: str, snapshot: dict, workdir: str) -> None:
-    """跟随后台作业：流式读日志 + 周期性增量取回新文件，直到进程退出。
+def _follow(remote: Remote, cfg: Config, remote_project: str, workdir: str) -> None:
+    """持续读取并保存后台作业日志，直到进程退出。
 
     参数：
         remote: SSH 会话。
         cfg: 配置（读 run_poll_interval）。
         remote_project: 远程项目目录。
-        snapshot: 上传时记录的文件状态快照，用于跳过未变化的文件。
-        workdir: 本地工作目录（结果原位写回这里）。
+        workdir: 本地工作目录（用于保存日志）。
     """
     log = remote_project + "/.cloudrun_run.log"
     pid = remote_project + "/.cloudrun_run.pid"
@@ -174,9 +173,6 @@ def _follow(remote: Remote, cfg: Config, remote_project: str, snapshot: dict, wo
                 print(text, end="", flush=True)
                 lf.write(text)
                 lf.flush()
-            down, _ = remote.download_tree(remote_project, workdir, snapshot=snapshot, exclude=cfg.sync_download_exclude)
-            if down:
-                print(f"[取回 {down} 个新文件]", flush=True)
             if not remote.alive(pid):
                 text, offset = remote.read_log(log, offset)
                 if text:
@@ -220,7 +216,7 @@ def push(cfg: Config, workdir: str) -> None:
 
 
 def run(cfg: Config, workdir: str, args: list | None = None) -> None:
-    """提交并运行：push -> 后台启动 -> 跟随取回，直到算完（config.run_detach 可启动即返回）。
+    """提交并运行：后台启动后跟随日志，作业退出后下载结果（可按配置启动即返回）。
 
     参数：
         cfg: 配置。
@@ -244,11 +240,11 @@ def run(cfg: Config, workdir: str, args: list | None = None) -> None:
             return
         print(f"开始运行：{cmd}（Ctrl-C 可断开，云端继续算）")
         try:
-            _follow(remote, cfg, remote_project, snapshot, workdir)
+            _follow(remote, cfg, remote_project, workdir)
         except KeyboardInterrupt:
             print("\n已断开跟随，云端仍在运行。cloudrun fetch 取结果，cloudrun logs --follow 继续看")
             return
-        # 算完显式最终取回，确保关机前结果已全部拉回本地
+        # 作业退出后下载结果，确保关机前文件已拉回本地。
         down, _ = remote.download_tree(remote_project, workdir, snapshot=snapshot, exclude=cfg.sync_download_exclude)
         if down:
             print(f"[最终取回 {down} 个文件]", flush=True)
