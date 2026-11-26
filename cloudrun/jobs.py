@@ -1,13 +1,14 @@
-"""作业编排：init/push/run/fetch/logs/status/up/down/destroy，以及实时日志跟随。
+"""作业编排：init/size/push/run/fetch/logs/status/up/down/destroy，以及实时日志跟随。
 
 功能：
     init  在工作目录生成 config.yaml 模板；
+    size  统计全量上传的本地文件数量与大小；
     push  增量上传项目 + 同步环境（uv sync 或 venv）；
     run   构造运行命令 -> push -> 云端后台启动 -> 实时跟随日志 -> 作业结束后增量下载结果；
     fetch 增量拉回新/变动文件，原位写回工作目录；logs 看日志；status 查存活。
 使用流程：cloudrun init -> 填 config.yaml -> cloudrun run 脚本.py。
 输入：Config、工作目录（config.yaml 所在目录）。
-输出：新/变动文件写回工作目录原相对路径、实时日志。
+输出：上传大小统计、实时日志与写回本地的结果文件。
 """
 
 from __future__ import annotations
@@ -21,7 +22,7 @@ import time
 from .config import Config
 from .env import _UV_PATH, detect_mode, ensure_env, ensure_system_setup
 from .providers import get_provider
-from .ssh import Remote
+from .ssh import Remote, iter_upload_files
 from .template import TEMPLATE
 
 
@@ -203,6 +204,35 @@ def init(workdir: str, force: bool = False) -> None:
     print("  阿里云全自动：填 provider.aliyun.access_key_id/secret（或设环境变量），server.host 留空")
     print("  如有自定义编译的包再填 env.wheels")
     print("配置好后运行：cloudrun run 脚本.py")
+
+
+def _format_size(byte_count: int) -> str:
+    """格式化文件大小。参数 byte_count: 总字节数。"""
+    for power, unit in ((4, "TiB"), (3, "GiB"), (2, "MiB"), (1, "KiB")):
+        scale = 1024 ** power
+        if byte_count >= scale:
+            return f"{byte_count / scale:.2f} {unit}（{byte_count:,} 字节）"
+    return f"{byte_count} 字节"
+
+
+def size(cfg: Config, workdir: str) -> None:
+    """在本地统计全量上传的文件数和大小。
+
+    参数：
+        cfg: 配置（提供项目上传排除模式和自定义 wheel 路径）。
+        workdir: 本地项目根目录。
+    """
+    project_count = project_bytes = 0
+    for _, _, file_stat in iter_upload_files(workdir, cfg.sync_exclude):
+        project_count += 1
+        project_bytes += file_stat.st_size
+
+    # 自定义 wheel 通过单独的上传流程传输，不应用项目文件的排除规则。
+    wheel_count = len(cfg.env_wheels)
+    wheel_bytes = sum(os.path.getsize(os.path.join(workdir, path)) for path in cfg.env_wheels)
+    print(f"项目文件：{project_count:,} 个，{_format_size(project_bytes)}")
+    print(f"自定义 wheel：{wheel_count:,} 个，{_format_size(wheel_bytes)}")
+    print(f"全量上传合计：{project_count + wheel_count:,} 个，{_format_size(project_bytes + wheel_bytes)}")
 
 
 def push(cfg: Config, workdir: str) -> None:

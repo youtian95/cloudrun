@@ -1,8 +1,8 @@
 """SSH/SFTP 传输与远程执行核心。
 
 功能：封装 paramiko，提供远程命令执行（实时流式输出）、后台启动、
-      以及"只传变化文件"的增量上传/下载（按 大小+mtime 判断，保留 mtime）。
-使用流程：Remote(cfg) 建立连接 -> upload_tree/run/download_tree -> close()。
+      增量上传/下载（按大小与 mtime 判断），并提供本地待上传文件遍历。
+使用流程：iter_upload_files 遍历本地文件；Remote(cfg) 建立连接 -> upload_tree/run/download_tree -> close()。
 输入：Config 对象、本地/远程路径。
 输出：远程命令退出码、上传/下载文件计数、文件状态快照 snapshot。
 """
@@ -14,6 +14,7 @@ import os
 import posixpath
 import shlex
 import stat
+from collections.abc import Iterator
 
 import paramiko
 
@@ -32,6 +33,26 @@ def _excluded(rel: str, patterns: list[str]) -> bool:
     """
     parts = rel.split("/")
     return any(fnmatch.fnmatch(p, pat) or fnmatch.fnmatch(rel, pat) for pat in patterns for p in parts)
+
+
+def iter_upload_files(local_dir: str, exclude: list[str]) -> Iterator[tuple[str, str, os.stat_result]]:
+    """遍历待上传文件，供上传与本地大小统计共用。
+
+    参数：
+        local_dir: 本地项目根目录。
+        exclude: 文件和目录的排除模式列表。
+
+    生成：本地路径、以 / 分隔的项目相对路径、文件状态。
+    """
+    for root, dirs, files in os.walk(local_dir):
+        rel_root = os.path.relpath(root, local_dir).replace(os.sep, "/")
+        # 在遍历前剪掉被排除的子目录，再检查其余文件。
+        dirs[:] = [d for d in dirs if not _excluded(d if rel_root == "." else rel_root + "/" + d, exclude)]
+        for name in files:
+            local_path = os.path.join(root, name)
+            rel = os.path.relpath(local_path, local_dir).replace(os.sep, "/")
+            if not _excluded(rel, exclude):
+                yield local_path, rel, os.stat(local_path)
 
 
 class Remote:
@@ -161,27 +182,18 @@ class Remote:
         uploaded = skipped = 0
         snapshot: dict[str, tuple[int, int]] = {}
         self.mkdirs(remote_dir)
-        for root, dirs, files in os.walk(local_dir):
-            rel_root = os.path.relpath(root, local_dir).replace(os.sep, "/")
-            # 剪掉排除目录，避免走进 __pycache__ / results 等
-            dirs[:] = [d for d in dirs if not _excluded(d if rel_root == "." else rel_root + "/" + d, exclude)]
-            for name in files:
-                rel = os.path.relpath(os.path.join(root, name), local_dir).replace(os.sep, "/")
-                if _excluded(rel, exclude):
+        for lp, rel, ls in iter_upload_files(local_dir, exclude):
+            rp = posixpath.join(remote_dir, rel)
+            snapshot[rel] = (ls.st_size, int(ls.st_mtime))
+            if self.exists(rp):
+                rs = self.sftp.stat(rp)
+                if rs.st_size == ls.st_size and int(rs.st_mtime) >= int(ls.st_mtime):
+                    skipped += 1
                     continue
-                lp = os.path.join(root, name)
-                rp = posixpath.join(remote_dir, rel)
-                ls = os.stat(lp)
-                snapshot[rel] = (ls.st_size, int(ls.st_mtime))
-                if self.exists(rp):
-                    rs = self.sftp.stat(rp)
-                    if rs.st_size == ls.st_size and int(rs.st_mtime) >= int(ls.st_mtime):
-                        skipped += 1
-                        continue
-                self.mkdirs(posixpath.dirname(rp))
-                self.sftp.put(lp, rp)
-                self.sftp.utime(rp, (int(ls.st_atime), int(ls.st_mtime)))
-                uploaded += 1
+            self.mkdirs(posixpath.dirname(rp))
+            self.sftp.put(lp, rp)
+            self.sftp.utime(rp, (int(ls.st_atime), int(ls.st_mtime)))
+            uploaded += 1
         return uploaded, skipped, snapshot
 
     def download_tree(self, remote_dir: str, local_dir: str, snapshot: dict | None = None, exclude: list[str] | None = None) -> tuple[int, int]:

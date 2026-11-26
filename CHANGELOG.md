@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 格式，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [unreleased]
+
+- [ ] 默认config文件命名修改
+
+## [0.3.5] - 2026-11-26
+
+- [x] 增加查询当前配置要上传的文件总大小的功能
+
 ## [0.3.4] - 2026-11-24
 
 - [x] 取消run会实时取回结果，必须手动取回，但是日志仍然会取回

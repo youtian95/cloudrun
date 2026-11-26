@@ -1,4 +1,4 @@
-"""命令行入口：解析 init/push/run/fetch/logs/status/up/down/destroy 并调用 jobs。
+"""命令行入口：解析 init/size/push/run/fetch/logs/status/up/down/destroy 并调用 jobs。
 
 功能：提供 cloudrun <子命令> 的 CLI。始终使用当前工作目录下的 config.yaml。
 使用流程：cd 工作目录 -> cloudrun init -> 填 config.yaml -> cloudrun run。
@@ -37,7 +37,8 @@ def main() -> None:
     p_init.add_argument("dir", nargs="?", default=".", help="目标目录（默认当前目录）")
     p_init.add_argument("--force", action="store_true", help="已存在时强制覆盖")
 
-    # push：只同步文件与环境
+    # size：本地统计；push：同步文件与环境
+    sub.add_parser("size", help="统计全量上传的本地文件数与大小，无需连接服务器")
     sub.add_parser("push", help="同步本地文件与环境到云端（不运行）")
 
     # run：自动同步并启动作业，跟随日志，结束后下载结果
@@ -71,7 +72,9 @@ def main() -> None:
     workdir = os.getcwd()
     cfg = Config.load(os.path.join(workdir, "config.yaml"))
 
-    if args.cmd == "push":
+    if args.cmd == "size":
+        jobs.size(cfg, workdir)
+    elif args.cmd == "push":
         jobs.push(cfg, workdir)
     elif args.cmd == "run":
         jobs.run(cfg, workdir, args=args.args)
