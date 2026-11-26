@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cloudrun"
-version = "0.3.4"
+version = "0.3.6"
 description = "把本地 Python 计算提交到自租云服务器执行：增量同步文件与环境，实时查看日志，作业结束后取回结果"
 readme = "README.md"
 requires-python = ">=3.12"

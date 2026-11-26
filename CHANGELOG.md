@@ -2,9 +2,9 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 格式，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [unreleased]
+## [0.3.6] - 2026-11-26
 
-- [ ] 默认config文件命名修改
+- [x] 默认config文件命名修改
 
 ## [0.3.5] - 2026-11-26
 

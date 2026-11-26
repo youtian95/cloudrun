@@ -1,8 +1,8 @@
-"""配置加载模块：读取 config.yaml 并展平成各模块使用的属性。
+"""配置加载模块：读取 config_cloudrun.yaml 并展平成各模块使用的属性。
 
 功能：把 YAML 里 server/remote/env/sync/run/power/provider/aliyun 各段读成 Config 对象。
-使用流程：Config.load("config.yaml") -> 带默认值的配置对象。
-输入：config.yaml 路径。
+使用流程：Config.load("config_cloudrun.yaml") -> 带默认值的配置对象。
+输入：YAML 配置路径。
 输出：Config 实例。
 """
 
@@ -11,6 +11,8 @@ from __future__ import annotations
 import os
 
 import yaml
+
+CONFIG_FILENAME = "config_cloudrun.yaml"
 
 # 下载排除项默认值：只排垃圾与内部标记，绝不排结果目录（结果要原位写回）
 DEFAULT_DOWNLOAD_EXCLUDE = ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]
@@ -71,7 +73,10 @@ class Config:
         self.env_freeze_python = os.path.expanduser(env.get("freeze_python", "") or "")
         self.env_wheels = [os.path.expanduser(w) for w in env.get("wheels", [])]
 
-        self.sync_exclude = sync.get("exclude", ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "results", "wheels", "config.yaml", ".cloudrun", "*.db"])
+        self.sync_exclude = list(sync.get("exclude", ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "results", "wheels", ".cloudrun", "*.db"]))
+        # 本机配置可能包含凭证，自定义排除列表也始终排除配置文件。
+        if CONFIG_FILENAME not in self.sync_exclude:
+            self.sync_exclude.append(CONFIG_FILENAME)
         self.sync_download_exclude = sync.get("download_exclude", DEFAULT_DOWNLOAD_EXCLUDE)
         self.run_command = run.get("command", "python run.py")
         self.run_poll_interval = float(run.get("poll_interval", 5))
@@ -86,7 +91,7 @@ class Config:
         """从 YAML 文件加载配置。
 
         参数：
-            path: config.yaml 的路径。
+            path: YAML 配置文件的路径。
 
         返回：
             Config 实例。

@@ -1,13 +1,13 @@
 """作业编排：init/size/push/run/fetch/logs/status/up/down/destroy，以及实时日志跟随。
 
 功能：
-    init  在工作目录生成 config.yaml 模板；
+    init  在工作目录生成 config_cloudrun.yaml 模板；
     size  统计全量上传的本地文件数量与大小；
     push  增量上传项目 + 同步环境（uv sync 或 venv）；
     run   构造运行命令 -> push -> 云端后台启动 -> 实时跟随日志 -> 作业结束后增量下载结果；
     fetch 增量拉回新/变动文件，原位写回工作目录；logs 看日志；status 查存活。
-使用流程：cloudrun init -> 填 config.yaml -> cloudrun run 脚本.py。
-输入：Config、工作目录（config.yaml 所在目录）。
+使用流程：cloudrun init -> 填 config_cloudrun.yaml -> cloudrun run 脚本.py。
+输入：Config、工作目录（config_cloudrun.yaml 所在目录）。
 输出：上传大小统计、实时日志与写回本地的结果文件。
 """
 
@@ -19,7 +19,7 @@ import shlex
 import subprocess
 import time
 
-from .config import Config
+from .config import CONFIG_FILENAME, Config
 from .env import _UV_PATH, detect_mode, ensure_env, ensure_system_setup
 from .providers import get_provider
 from .ssh import Remote, iter_upload_files
@@ -185,21 +185,21 @@ def _follow(remote: Remote, cfg: Config, remote_project: str, workdir: str) -> N
 
 
 def init(workdir: str, force: bool = False) -> None:
-    """在工作目录生成 config.yaml 模板，已存在时默认跳过。
+    """在工作目录生成 config_cloudrun.yaml 模板，已存在时默认跳过。
 
     参数：
         workdir: 目标目录。
-        force: 为 True 时覆盖已存在的 config.yaml。
+        force: 为 True 时覆盖已存在的 Cloudrun 配置。
     """
     os.makedirs(workdir, exist_ok=True)
-    path = os.path.join(workdir, "config.yaml")
+    path = os.path.join(workdir, CONFIG_FILENAME)
     if os.path.exists(path) and not force:
-        print("config.yaml 已存在，未覆盖（加 --force 可强制重新生成）")
+        print(f"{CONFIG_FILENAME} 已存在，未覆盖（加 --force 可强制重新生成）")
         return
     with open(path, "w", encoding="utf-8") as f:
         f.write(TEMPLATE)
     print("已生成", path)
-    print("请配置 config.yaml（二选一）：")
+    print(f"请配置 {CONFIG_FILENAME}（二选一）：")
     print("  手动服务器：填 server（host/user/密钥）")
     print("  阿里云全自动：填 provider.aliyun.access_key_id/secret（或设环境变量），server.host 留空")
     print("  如有自定义编译的包再填 env.wheels")

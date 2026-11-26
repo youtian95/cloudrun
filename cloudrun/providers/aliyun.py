@@ -19,7 +19,7 @@ import uuid
 
 from ..config import Config
 
-# 默认配置（可被 config.yaml 的 aliyun 段覆盖）
+# 默认配置（可被 config_cloudrun.yaml 的 provider.aliyun 段覆盖）
 DEFAULTS = {
     "enabled": False,
     "access_key_id": "",

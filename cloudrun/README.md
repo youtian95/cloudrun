@@ -6,9 +6,9 @@
 
 | 模块 | 职责 | 关键接口 |
 |---|---|---|
-| `cli.py` | 命令行解析与分发；始终用当前目录 `config.yaml` | `main()` |
+| `cli.py` | 命令行解析与分发，读取当前目录的 `config_cloudrun.yaml` | `main()` |
 | `config.py` | 读取 YAML，展平成 `Config`（含默认值） | `Config.load()` |
-| `template.py` | `init` 写出的 `config.yaml` 模板 | `TEMPLATE` |
+| `template.py` | `init` 写出的 `config_cloudrun.yaml` 模板 | `TEMPLATE` |
 | `jobs.py` | **编排核心**：参数转发、push、run、日志跟随、结果写回 | `run()`/`build_command()`/`_push`/`_launch`/`_follow` |
 | `ssh.py` | 远程会话：SSH 执行、SFTP、**增量上传/下载**、读日志、查存活 | `Remote`（`upload_tree`/`download_tree`/`read_log`/`alive`…） |
 | `env.py` | 环境：本地检测模式/依赖 + 远程安装（**uv sync** 或 venv）+ 自定义 wheel 覆盖 | `detect_mode()`/`resolve_requirements()`/`ensure_env()` |
@@ -83,6 +83,11 @@ sequenceDiagram
     ```bash
     uv build      # 打包：生成 dist/cloudrun-0.2.0.tar.gz（源码包）+ dist/cloudrun-0.2.0-py3-none-any.whl（wheel）
     <!-- uv publish    # 上传到 PyPI（需 token：uv publish --token <token>） -->
+    ```
+
+2. 安装到本地uv：
+    ```bash
+    uv tool install --force --editable --with aliyun-python-sdk-core "H:\python programs\cloudrun"
     ```
 
 ## 新增云服务商

@@ -1,5 +1,5 @@
 # cloudrun 配置示例（与 cloudrun init 生成的模板一致）。
-# 推荐直接在工作目录运行 cloudrun init 生成 config.yaml，再填写。
+# 推荐直接在工作目录运行 cloudrun init 生成 config_cloudrun.yaml，再填写。
 
 # [二选一]
 # 使用已经存在的云服务器
@@ -60,7 +60,7 @@ env:
 
 # 增量同步排除项
 sync:
-  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
+  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "wheels", "config_cloudrun.yaml", ".cloudrun", "*.db"]   # 不上传
   download_exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
 
 # 运行

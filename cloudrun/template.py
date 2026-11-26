@@ -1,14 +1,14 @@
-"""config.yaml 模板：cloudrun init 时写入用户工作目录。
+"""config_cloudrun.yaml 模板：cloudrun init 时写入用户工作目录。
 
 功能：提供一份带注释的默认配置模板字符串。
-使用流程：init 命令把 TEMPLATE 写成工作目录下的 config.yaml。
+使用流程：init 命令把 TEMPLATE 写成工作目录下的 config_cloudrun.yaml。
 输入：无。
 输出：TEMPLATE 字符串（YAML 文本）。
 """
 
 TEMPLATE = """\
 # cloudrun 配置（由 cloudrun init 生成）。填写 server 与 env.wheels 后即可使用。
-# 本文件所在目录即"工作目录"，push/run 会同步这个目录。config.yaml 本身不会被上传。
+# 本文件所在目录即"工作目录"，push/run 会同步这个目录。config_cloudrun.yaml 本身不会被上传。
 
 # [二选一]
 # 使用已经存在的云服务器
@@ -70,7 +70,7 @@ env:
 
 # 增量同步排除项
 sync:
-  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "wheels", "config.yaml", ".cloudrun", "*.db"]   # 不上传
+  exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", "wheels", "config_cloudrun.yaml", ".cloudrun", "*.db"]   # 不上传
   download_exclude: ["__pycache__", "*.pyc", "*.egg-info", "build", "dist", ".git", ".venv", "venv", ".cloudrun", ".cloudrun_run.*"]   # 不下载（切勿排除结果目录）
 
 # 运行

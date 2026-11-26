@@ -1,8 +1,8 @@
 """命令行入口：解析 init/size/push/run/fetch/logs/status/up/down/destroy 并调用 jobs。
 
-功能：提供 cloudrun <子命令> 的 CLI。始终使用当前工作目录下的 config.yaml。
-使用流程：cd 工作目录 -> cloudrun init -> 填 config.yaml -> cloudrun run。
-输入：命令行参数 + 当前目录 config.yaml。
+功能：提供 cloudrun <子命令> 的 CLI。始终使用当前工作目录下的 config_cloudrun.yaml。
+使用流程：cd 工作目录 -> cloudrun init -> 填 config_cloudrun.yaml -> cloudrun run。
+输入：命令行参数 + 当前目录 config_cloudrun.yaml。
 输出：调用对应作业函数。
 """
 
@@ -12,7 +12,7 @@ import argparse
 import os
 import sys
 
-from .config import Config
+from .config import CONFIG_FILENAME, Config
 from . import jobs
 
 
@@ -33,7 +33,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # init：生成配置模板
-    p_init = sub.add_parser("init", help="在工作目录生成 config.yaml 模板")
+    p_init = sub.add_parser("init", help=f"在工作目录生成 {CONFIG_FILENAME} 模板")
     p_init.add_argument("dir", nargs="?", default=".", help="目标目录（默认当前目录）")
     p_init.add_argument("--force", action="store_true", help="已存在时强制覆盖")
 
@@ -68,9 +68,12 @@ def main() -> None:
         jobs.init(os.path.abspath(args.dir), force=args.force)
         return
 
-    # 其余命令都用当前工作目录的 config.yaml
+    # 其余命令读取当前目录下的 Cloudrun 专用配置。
     workdir = os.getcwd()
-    cfg = Config.load(os.path.join(workdir, "config.yaml"))
+    try:
+        cfg = Config.load(os.path.join(workdir, CONFIG_FILENAME))
+    except FileNotFoundError:
+        parser.error(f"当前目录缺少 {CONFIG_FILENAME}。请重命名已有的 Cloudrun 配置，或运行 cloudrun init 生成模板。")
 
     if args.cmd == "size":
         jobs.size(cfg, workdir)
