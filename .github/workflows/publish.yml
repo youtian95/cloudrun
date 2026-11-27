@@ -28,8 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 安装 uv 与 Python 3.12，并缓存 uv 下载
-      - uses: astral-sh/setup-uv@v10
+      # 安装 uv 与 Python 3.12，并缓存 uv 下载（setup-uv 自 v8 起不再提供大版本浮动标签，须钉住完整版本号）
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           python-version: "3.12"
           enable-cache: true
