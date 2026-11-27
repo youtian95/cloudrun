@@ -13,7 +13,7 @@ server:
 # [二选一]
 # 自动使用云服务商权限开通新的服务器（每个服务商一段；enabled 为 true 时启用）
 provider:
-  # 使用阿里云，安装时需要 uv sync --extra aliyun
+  # 使用阿里云，启用后可自动管理 ECS 实例
   aliyun:
     enabled: true
     # 凭证推荐用环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET

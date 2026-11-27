@@ -167,25 +167,20 @@ wheels = [
 
 [[package]]
 name = "cloudrun"
-version = "0.3.0"
+version = "0.3.7"
 source = { editable = "." }
 dependencies = [
+    { name = "aliyun-python-sdk-core" },
     { name = "paramiko" },
     { name = "pyyaml" },
 ]
 
-[package.optional-dependencies]
-aliyun = [
-    { name = "aliyun-python-sdk-core" },
-]
-
 [package.metadata]
 requires-dist = [
-    { name = "aliyun-python-sdk-core", marker = "extra == 'aliyun'", specifier = ">=2.13" },
+    { name = "aliyun-python-sdk-core", specifier = ">=2.13" },
     { name = "paramiko", specifier = ">=3.0" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]
-provides-extras = ["aliyun"]
 
 [[package]]
 name = "cryptography"

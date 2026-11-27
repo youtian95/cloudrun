@@ -87,7 +87,7 @@ sequenceDiagram
 
 2. 安装到本地uv：
     ```bash
-    uv tool install --force --editable --with aliyun-python-sdk-core "H:\python programs\cloudrun"
+    uv tool install --force --editable "H:\python programs\cloudrun"
     ```
 
 ## 新增云服务商
