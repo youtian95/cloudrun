@@ -13,7 +13,7 @@
 1. 安装`cloudrun`
 
     ```powershell
-    uv tool install cloudrun              # 全局命令（发布到 PyPI 后）
+    uv tool install pycloudrun            # 全局命令（发布到 PyPI 后）
     ```
 
     标准安装包含阿里云 SDK。若要从源码可编辑安装，在仓库根目录运行 `uv tool install --editable .`。

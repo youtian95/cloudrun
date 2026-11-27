@@ -13,7 +13,7 @@ Run local Python computations on a Linux cloud server. Cloudrun syncs changed pr
 1. Install the CLI with `uv`.
 
    ```powershell
-   uv tool install cloudrun
+   uv tool install pycloudrun
    ```
 
    The standard installation includes the Alibaba Cloud SDK. To install from a source checkout in editable mode, run `uv tool install --editable .` from the repository root.

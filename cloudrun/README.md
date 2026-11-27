@@ -77,16 +77,21 @@ sequenceDiagram
 
 ## 打包与发布
 
-1. 修改 `pyproject.toml` 的 `[project].version`。
+发布到 PyPI 由 GitHub Actions 自动完成（`.github/workflows/publish.yml`，Trusted Publishing 免密钥）。PyPI 发布名为 `pycloudrun`（`cloudrun` 一名已被占用），导入名与命令行仍为 `cloudrun`。
 
-1. 打包与上传：
+1. 修改 `pyproject.toml` 的 `[project].version`，提交。
+
+1. 打标签并推送，触发自动构建与发布（标签号须与版本号一致）：
     ```bash
-    uv build      # 打包：生成 dist/cloudrun-0.2.0.tar.gz（源码包）+ dist/cloudrun-0.2.0-py3-none-any.whl（wheel）
-    <!-- uv publish    # 上传到 PyPI（需 token：uv publish --token <token>） -->
+    git tag v0.3.8
+    git push origin v0.3.8
     ```
 
-2. 安装到本地uv：
+1. 首次发布前需在 PyPI 配置 Trusted Publisher：账户/项目 Settings → Publishing，填 owner=`youtian95`、repository=`cloudrun`、workflow=`publish.yml`、environment=`pypi`。
+
+1. 本地开发仍可手动打包与安装：
     ```bash
+    uv build      # 打包：生成 dist/pycloudrun-<版本>.tar.gz（源码包）+ dist/pycloudrun-<版本>-py3-none-any.whl（wheel）
     uv tool install --force --editable "H:\python programs\cloudrun"
     ```
 

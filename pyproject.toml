@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cloudrun"
-version = "0.3.7"
+name = "pycloudrun"
+version = "0.3.8"
 description = "把本地 Python 计算提交到自租云服务器执行：增量同步文件与环境，实时查看日志，作业结束后取回结果"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = ["aliyun-python-sdk-core>=2.13", "paramiko>=3.0", "pyyaml>=6.0"]
 authors = [{name = "youtian95", email = "youtian95@qq.com"}]
-license = {text = "MIT"}
+license = "MIT"
 keywords = ["cloud", "remote-compute", "hpc", "opensees", "scientific-computing"]
 
 [project.urls]
